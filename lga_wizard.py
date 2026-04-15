@@ -123,15 +123,8 @@ class LGAWizard(FootprintWizardBase.FootprintWizard):
         layers.AddLayer(pcbnew.B_Mask)
         pad.SetLayerSet(layers)
 
-        # Centro da matriz na origem
-        pin1_pos = pcbnew.wxPoint(
-            -((cols - 1) * pitch_x) / 2,
-            -((rows - 1) * pitch_y) / 2,
-        )
-
-        # Matriz retangular LGA
+        # Matriz retangular LGA centrada na origem
         array = LGAPadGridArray(pad, cols, rows, pitch_x, pitch_y)
-        array.SetFirstPadInArrayPosition(pin1_pos)
         array.AddPadsToModule(self.draw)
 
         # ---------------- Corpo mecânico em F.Fab ----------------
