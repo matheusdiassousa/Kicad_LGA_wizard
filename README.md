@@ -8,6 +8,7 @@ LGA footprint creator for the KiCad Footprint Wizard. It generates generic **rec
   - Independent pitch in X and Y (non‑square grids)
   - Configurable number of columns and rows
   - Pads created as SMD on `B.Cu`, `B.Mask`, and `B.Paste`
+  - Pad shape selectable: rectangular, round, or rounded rectangle
 - Package outline
   - Body width/length parameters
   - IPC‑style beveled corner on `F.Fab`
@@ -46,7 +47,9 @@ If everything is installed correctly, the wizard will appear as **`LGA (rectangu
 **Pads**
 - `pitch_x` – pad spacing in X (mm).
 - `pitch_y` – pad spacing in Y (mm).
-- `size` – square pad size (mm).
+- `size_x` – pad width (mm).
+- `size_y` – pad height (mm).
+- `shape` – pad shape: `rect`, `round`, or `roundrect` (default).
 - `columns` (`nx`) – number of pad columns.
 - `rows` (`ny`) – number of pad rows.
 
