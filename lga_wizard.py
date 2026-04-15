@@ -197,8 +197,5 @@ class LGAWizard(FootprintWizardBase.FootprintWizard):
         self.draw.Value(0, ypos, text_size)
         self.draw.Reference(0, -ypos, text_size)
 
-        # SMD attribute
-        self.module.SetAttributes(pcbnew.MOD_CMS)
-
 
 LGAWizard().register()
