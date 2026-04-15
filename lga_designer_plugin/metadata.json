@@ -1,16 +1,14 @@
 {
-  "identifier": "com.matheusdiassousa.lga_designer",
+  "$schema": "https://go.kicad.org/pcm/schemas/v2",
+  "type": "plugin",
+  "identifier": "lga-footprint-designer",
   "name": "LGA Footprint Designer",
-  "description": "Interactive LGA footprint generator with clickable pad grid, shape, soldermask and staggered options.",
-  "description_full": "Opens a dialog where you configure pitch, pad size, shape (rect/round/roundrect), soldermask type (SMD/NSMD), staggered grid, and interactively enable/disable individual pads by clicking them. Generates a .kicad_mod footprint ready to use.",
-  "version": "0.1.0",
+  "description": "Interactive LGA footprint generator with clickable pad grid, pad shape, soldermask and staggered options.",
+  "description_full": "Opens a dialog where you configure pitch, pad size, shape (rect/round/roundrect), soldermask type (SMD/NSMD), staggered grid, and interactively enable/disable individual pads by clicking them in a grid. Generates an LGA footprint you can inspect and save to any library.",
   "author": {
-    "name": "Matheus Dias Sousa",
-    "contact": {
-      "github": "https://github.com/matheusdiassousa"
-    }
+    "name": "Matheus Dias Sousa"
   },
-  "license": "GPL-3.0",
+  "license": "GPL-3.0-or-later",
   "resources": {
     "homepage": "https://github.com/matheusdiassousa/Kicad_LGA_wizard"
   },
@@ -18,7 +16,8 @@
     {
       "version": "0.1.0",
       "status": "testing",
-      "kicad_version": "8.0"
+      "kicad_version": "8.0",
+      "runtime": "swig"
     }
   ]
 }
