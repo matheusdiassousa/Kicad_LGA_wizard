@@ -46,6 +46,7 @@ class LGAWizard(FootprintWizardBase.FootprintWizard):
         self.AddParam("Pads", "pitch_y", self.uMM, 1.00, designator="py")
         self.AddParam("Pads", "size_x", self.uMM, 0.50)
         self.AddParam("Pads", "size_y", self.uMM, 0.50)
+        self.AddParam("Pads", "shape", self.uString, "roundrect", hint="rect | round | roundrect")
         self.AddParam("Pads", "columns", self.uInteger, 5, designator="nx")
         self.AddParam("Pads", "rows", self.uInteger, 5, designator="ny")
 
@@ -114,12 +115,20 @@ class LGAWizard(FootprintWizardBase.FootprintWizard):
         pitch_x = pads["pitch_x"]
         pitch_y = pads["pitch_y"]
 
-        # Protótipo de pad SMD retangular em B.Cu/B.Mask/B.Paste
+        shape_name = str(pads["shape"]).lower().strip()
+        if shape_name.startswith("roundrect") or shape_name.startswith("rr"):
+            shape = pcbnew.PAD_SHAPE_ROUNDRECT
+        elif shape_name.startswith("round") or shape_name.startswith("circle"):
+            shape = pcbnew.PAD_SHAPE_CIRCLE
+        else:
+            shape = pcbnew.PAD_SHAPE_RECT
+
+        # Protótipo de pad SMD em B.Cu/B.Mask/B.Paste
         pad_maker = PA.PadMaker(self.module)
         pad = pad_maker.SMDPad(
             Vsize=size_y,
             Hsize=size_x,
-            shape=pcbnew.PAD_SHAPE_RECT,
+            shape=shape,
         )
 
         layers = pcbnew.LSET()
