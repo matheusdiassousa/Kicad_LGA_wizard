@@ -44,7 +44,8 @@ class LGAWizard(FootprintWizardBase.FootprintWizard):
         # Pads
         self.AddParam("Pads", "pitch_x", self.uMM, 1.00, designator="px")
         self.AddParam("Pads", "pitch_y", self.uMM, 1.00, designator="py")
-        self.AddParam("Pads", "size", self.uMM, 0.50)
+        self.AddParam("Pads", "size_x", self.uMM, 0.50)
+        self.AddParam("Pads", "size_y", self.uMM, 0.50)
         self.AddParam("Pads", "columns", self.uInteger, 5, designator="nx")
         self.AddParam("Pads", "rows", self.uInteger, 5, designator="ny")
 
@@ -108,14 +109,18 @@ class LGAWizard(FootprintWizardBase.FootprintWizard):
 
         rows = pads["rows"]
         cols = pads["columns"]
-        pad_size_val = pads["size"]
-        pad_size = pcbnew.wxSize(pad_size_val, pad_size_val)
+        size_x = pads["size_x"]
+        size_y = pads["size_y"]
         pitch_x = pads["pitch_x"]
         pitch_y = pads["pitch_y"]
 
-        # Protótipo de pad SMD em B.Cu/B.Mask/B.Paste
+        # Protótipo de pad SMD retangular em B.Cu/B.Mask/B.Paste
         pad_maker = PA.PadMaker(self.module)
-        pad = pad_maker.SMTRoundPad(pads["size"])
+        pad = pad_maker.SMDPad(
+            Vsize=size_y,
+            Hsize=size_x,
+            shape=pcbnew.PAD_SHAPE_RECT,
+        )
 
         layers = pcbnew.LSET()
         layers.AddLayer(pcbnew.B_Cu)
