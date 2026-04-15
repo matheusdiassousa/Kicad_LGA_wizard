@@ -124,10 +124,6 @@ class LGAWizard(FootprintWizardBase.FootprintWizard):
         self.buildmessages += "\nsize_x / size_y:\n"
         self.buildmessages += "  rect/roundrect -> pad width (X) and height (Y)\n"
         self.buildmessages += "  round          -> diameter in X and Y (use equal values for a circle)\n"
-        self.buildmessages += "\nAM5 reference values (estimated):\n"
-        self.buildmessages += "  Body: 40.0 x 40.0 mm | pitch_x ~ 0.94 mm | pitch_y ~ 0.81 mm\n"
-        self.buildmessages += "  Grid: ~46 columns x ~79 rows (1718 active lands out of ~3634 positions)\n"
-        self.buildmessages += "-------------------------------\n"
         # ----------------------------------------------------------------------
 
         # SMD pad prototype on B.Cu/B.Mask/B.Paste
