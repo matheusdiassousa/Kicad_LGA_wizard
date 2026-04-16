@@ -14,19 +14,27 @@ COLOR_ON   = wx.Colour(70, 130, 180)   # steel blue  – active pad
 COLOR_OFF  = wx.Colour(40, 40,  40)    # dark grey   – removed pad
 COLOR_BG   = wx.Colour(20, 20,  20)    # background
 COLOR_LBL  = wx.Colour(160, 200, 255)  # label text
+COLOR_ROW_SEL = wx.Colour(200, 100, 50)  # orange - row selected
+COLOR_COL_SEL = wx.Colour(50, 150, 100)  # teal - column selected
 
 
 # ---------------------------------------------------------------------------
 # Interactive grid canvas
 # ---------------------------------------------------------------------------
 class PadGridCanvas(wx.Panel):
-    """Draws an n_col x n_row grid of clickable pad cells."""
+    """Draws an n_col x n_row grid of clickable pad cells with row/column selection."""
 
     def __init__(self, parent, n_cols, n_rows):
         self.n_cols = n_cols
         self.n_rows = n_rows
         # active[row][col] = True/False
         self.active = [[True] * n_cols for _ in range(n_rows)]
+        # Selection state for rows and columns
+        self.selected_rows = set()
+        self.selected_cols = set()
+        # Staggered mode: 'none', 'row', 'column'
+        self.stagger_mode = 'none'
+        self.stagger_offset = 0.5
 
         w = n_cols * STEP + CELL_PAD
         h = n_rows * STEP + CELL_PAD
@@ -36,13 +44,16 @@ class PadGridCanvas(wx.Panel):
 
         self.Bind(wx.EVT_PAINT,       self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN,   self.OnClick)
-        self.Bind(wx.EVT_LEFT_DCLICK, self.OnClick)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnDClick)
+        self.Bind(wx.EVT_RIGHT_DOWN,  self.OnRightClick)
 
     # ------------------------------------------------------------------
     def rebuild(self, n_cols, n_rows):
         self.n_cols = n_cols
         self.n_rows = n_rows
         self.active = [[True] * n_cols for _ in range(n_rows)]
+        self.selected_rows = set()
+        self.selected_cols = set()
         w = n_cols * STEP + CELL_PAD
         h = n_rows * STEP + CELL_PAD
         self.SetMinSize((w, h))
@@ -55,14 +66,37 @@ class PadGridCanvas(wx.Panel):
         dc = wx.PaintDC(self)
         dc.SetBackground(wx.Brush(COLOR_BG))
         dc.Clear()
+        
         for r in range(self.n_rows):
             for c in range(self.n_cols):
-                colour = COLOR_ON if self.active[r][c] else COLOR_OFF
+                # Determine cell color
+                is_selected_row = r in self.selected_rows
+                is_selected_col = c in self.selected_cols
+                
+                if is_selected_row and is_selected_col:
+                    colour = COLOR_ROW_SEL  # Both selected - highlight
+                elif is_selected_row:
+                    colour = wx.Colour(180, 90, 40)  # Darker orange
+                elif is_selected_col:
+                    colour = wx.Colour(40, 130, 90)  # Darker teal
+                elif self.active[r][c]:
+                    colour = COLOR_ON
+                else:
+                    colour = COLOR_OFF
+                
                 dc.SetBrush(wx.Brush(colour))
                 dc.SetPen(wx.TRANSPARENT_PEN)
                 x = CELL_PAD + c * STEP
                 y = CELL_PAD + r * STEP
                 dc.DrawRoundedRectangle(x, y, CELL_SIZE, CELL_SIZE, 2)
+                
+                # Draw stagger indicator
+                if self.stagger_mode == 'row' and r % 2 == 1:
+                    dc.SetPen(wx.Pen(wx.Colour(255, 255, 0), 1))
+                    dc.DrawCircle(x + CELL_SIZE//2, y + CELL_SIZE//2, 2)
+                elif self.stagger_mode == 'column' and c % 2 == 1:
+                    dc.SetPen(wx.Pen(wx.Colour(255, 255, 0), 1))
+                    dc.DrawCircle(x + CELL_SIZE//2, y + CELL_SIZE//2, 2)
 
     # ------------------------------------------------------------------
     def OnClick(self, event):
@@ -71,6 +105,32 @@ class PadGridCanvas(wx.Panel):
         r = (y - CELL_PAD) // STEP
         if 0 <= r < self.n_rows and 0 <= c < self.n_cols:
             self.active[r][c] = not self.active[r][c]
+            self.Refresh()
+
+    # ------------------------------------------------------------------
+    def OnDClick(self, event):
+        """Double-click to toggle row selection."""
+        x, y = event.GetPosition()
+        c = (x - CELL_PAD) // STEP
+        r = (y - CELL_PAD) // STEP
+        if 0 <= r < self.n_rows and 0 <= c < self.n_cols:
+            if r in self.selected_rows:
+                self.selected_rows.remove(r)
+            else:
+                self.selected_rows.add(r)
+            self.Refresh()
+
+    # ------------------------------------------------------------------
+    def OnRightClick(self, event):
+        """Right-click to toggle column selection."""
+        x, y = event.GetPosition()
+        c = (x - CELL_PAD) // STEP
+        r = (y - CELL_PAD) // STEP
+        if 0 <= r < self.n_rows and 0 <= c < self.n_cols:
+            if c in self.selected_cols:
+                self.selected_cols.remove(c)
+            else:
+                self.selected_cols.add(c)
             self.Refresh()
 
     # ------------------------------------------------------------------
@@ -89,6 +149,34 @@ class PadGridCanvas(wx.Panel):
 
     def select_none(self):
         self.active = [[False] * self.n_cols for _ in range(self.n_rows)]
+        self.Refresh()
+
+    def remove_selected_rows(self):
+        """Remove all pads in selected rows."""
+        for r in self.selected_rows:
+            for c in range(self.n_cols):
+                self.active[r][c] = False
+        self.selected_rows.clear()
+        self.Refresh()
+
+    def remove_selected_cols(self):
+        """Remove all pads in selected columns."""
+        for c in self.selected_cols:
+            for r in range(self.n_rows):
+                self.active[r][c] = False
+        self.selected_cols.clear()
+        self.Refresh()
+
+    def remove_intersection(self):
+        """Remove pads at intersection of selected rows and columns."""
+        for r in self.selected_rows:
+            for c in self.selected_cols:
+                self.active[r][c] = False
+        self.Refresh()
+
+    def clear_selection(self):
+        self.selected_rows = set()
+        self.selected_cols = set()
         self.Refresh()
 
 
@@ -163,19 +251,24 @@ class LGADesignerDialog(wx.Dialog):
         addrow("Soldermask:", self.ch_mask)
 
         # Staggered
-        self.cb_stagger = wx.CheckBox(self, label="Staggered grid (offset every other column)")
+        self.cb_stagger = wx.CheckBox(self, label="Staggered grid")
         left.Add(self.cb_stagger, 0, wx.BOTTOM, 6)
+
+        self.rb_stagger = wx.RadioBox(self, label="Stagger by:",
+                                       choices=["Columns (odd cols offset)", "Rows (odd rows offset)"])
+        self.rb_stagger.SetSelection(0)
+        left.Add(self.rb_stagger, 0, wx.EXPAND | wx.BOTTOM, 6)
 
         self.sc_stagger = wx.SpinCtrlDouble(self, value="0.5", min=0.0, max=1.0, inc=0.1)
         self.sc_stagger.SetDigits(2)
-        addrow("Stagger offset (fraction of pitch Y):", self.sc_stagger)
+        addrow("Stagger offset (fraction of pitch):", self.sc_stagger)
 
         # Separator
         left.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
 
         # Grid controls
         btn_rebuild = wx.Button(self, label="Rebuild grid")
-        btn_all     = wx.Button(self, label="Select all")
+        btn_all     = wx.Button(self, label="Select all pads")
         btn_none    = wx.Button(self, label="Select none")
         for b in (btn_rebuild, btn_all, btn_none):
             left.Add(b, 0, wx.EXPAND | wx.BOTTOM, 4)
@@ -183,6 +276,30 @@ class LGADesignerDialog(wx.Dialog):
         btn_rebuild.Bind(wx.EVT_BUTTON, self.OnRebuild)
         btn_all.Bind(wx.EVT_BUTTON,     lambda e: self.canvas.select_all())
         btn_none.Bind(wx.EVT_BUTTON,    lambda e: self.canvas.select_none())
+
+        # Separator
+        left.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
+
+        # Row/Column selection controls
+        lbl_sel = wx.StaticText(self, label="Row/Column Selection:")
+        lbl_sel.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        left.Add(lbl_sel, 0, wx.BOTTOM, 4)
+
+        help_sel = wx.StaticText(self, label="Double-click: select row\nRight-click: select column")
+        help_sel.SetForegroundColour(COLOR_LBL)
+        left.Add(help_sel, 0, wx.BOTTOM, 8)
+
+        btn_clear_sel = wx.Button(self, label="Clear selection")
+        btn_rem_rows  = wx.Button(self, label="Remove selected rows")
+        btn_rem_cols  = wx.Button(self, label="Remove selected columns")
+        btn_rem_inter = wx.Button(self, label="Remove intersection")
+        for b in (btn_clear_sel, btn_rem_rows, btn_rem_cols, btn_rem_inter):
+            left.Add(b, 0, wx.EXPAND | wx.BOTTOM, 4)
+
+        btn_clear_sel.Bind(wx.EVT_BUTTON, lambda e: self.canvas.clear_selection())
+        btn_rem_rows.Bind(wx.EVT_BUTTON,  lambda e: self.canvas.remove_selected_rows())
+        btn_rem_cols.Bind(wx.EVT_BUTTON,  lambda e: self.canvas.remove_selected_cols())
+        btn_rem_inter.Bind(wx.EVT_BUTTON, lambda e: self.canvas.remove_intersection())
 
         # Separator
         left.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
@@ -217,7 +334,9 @@ class LGADesignerDialog(wx.Dialog):
         self.scroll.SetupScrolling(scroll_x=True, scroll_y=True)
 
         # Help text below canvas
-        help_txt = ("Click a pad to toggle it on/off. "
+        help_txt = ("Click: toggle pad on/off\n"
+                    "Double-click: select row (orange)\n"
+                    "Right-click: select column (teal)\n"
                     "Blue = active  |  Dark = removed.")
         lbl_help = wx.StaticText(self.scroll, label=help_txt)
         lbl_help.SetForegroundColour(COLOR_LBL)
@@ -261,8 +380,9 @@ class LGADesignerDialog(wx.Dialog):
         size_y  = pcbnew.FromMM(self.sc_size_y.GetValue())
         rr_ratio = self.sc_rr.GetValue()
         stagger  = self.cb_stagger.GetValue()
-        stagger_offset = pcbnew.FromMM(
-            self.sc_stagger.GetValue() * self.sc_pitch_y.GetValue())
+        stagger_by_rows = self.rb_stagger.GetSelection() == 1  # True = stagger by rows, False = by columns
+        stagger_offset_val = self.sc_stagger.GetValue()
+        stagger_offset = pcbnew.FromMM(stagger_offset_val * (self.sc_pitch_y.GetValue() if not stagger_by_rows else self.sc_pitch_x.GetValue()))
 
         shape_idx = self.ch_shape.GetSelection()
         shape_map = {
@@ -330,8 +450,14 @@ class LGADesignerDialog(wx.Dialog):
             # Position
             x = origin_x + c * pitch_x
             y = origin_y + r * pitch_y
-            if stagger and (c % 2 == 1):
-                y += stagger_offset
+            
+            if stagger:
+                if stagger_by_rows and (r % 2 == 1):
+                    # Stagger by rows: odd rows are offset in X direction
+                    x += stagger_offset
+                elif not stagger_by_rows and (c % 2 == 1):
+                    # Stagger by columns: odd columns are offset in Y direction
+                    y += stagger_offset
 
             pad.SetPosition(pcbnew.VECTOR2I(x, y))
             pad.SetNumber("{}{}".format(row_label(r), c + 1))
